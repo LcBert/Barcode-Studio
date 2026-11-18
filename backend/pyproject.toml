@@ -1,0 +1,15 @@
+[project]
+name = "barcode-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=6.1.2",
+    "django-cors-headers>=4.9.0",
+    "djangorestframework>=3.18.3",
+    "gunicorn>=26.2.0",
+    "pillow>=13.0.0",
+    "psycopg2-binary>=2.9.13",
+    "python-barcode>=0.16.1",
+]
