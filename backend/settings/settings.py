@@ -1,5 +1,5 @@
 """
-Django settings for barcode_project project.
+Django settings for settings project.
 """
 
 import os
@@ -41,7 +41,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "barcode_project.urls"
+ROOT_URLCONF = "settings.urls"
 
 TEMPLATES = [
     {
@@ -58,7 +58,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "barcode_project.wsgi.application"
+WSGI_APPLICATION = "settings.wsgi.application"
 
 # Database configuration: PostgreSQL if DB_NAME/POSTGRES_DB is provided, else SQLite
 DB_NAME = os.environ.get("DB_NAME") or os.environ.get("POSTGRES_DB")

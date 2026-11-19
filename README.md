@@ -21,7 +21,7 @@ Applicazione Full-Stack per la generazione, validazione, rendering e archiviazio
 │   ├── Dockerfile
 │   ├── entrypoint.sh
 │   ├── manage.py
-│   ├── barcode_project/     # Configurazione Django, settings, urls
+│   ├── settings/            # Configurazione Django, settings, urls
 │   └── barcodes/            # App GS1: parser, validatore, generatore, modelli, test
 └── frontend/                # Frontend Angular 22 standalone
     ├── Dockerfile
