@@ -48,6 +48,36 @@ export interface SavedBarcode {
   updated_at?: string;
 }
 
+export interface FormElement {
+  id: string;
+  ai: string;
+  value: string;
+}
+
+export interface FolderTreeOption {
+  id: number;
+  name: string;
+  fullPath: string;
+  depth: number;
+  parent: number | null;
+}
+
+export type ViewTab = 'editor' | 'grid' | 'library';
+
+export interface PrintConfig {
+  copiesPerItem: number;
+  columns: 1 | 2 | 3 | 4 | 5;
+  paperSize: 'a4' | 'a5' | 'thermal-100' | 'thermal-50';
+  orientation: 'portrait' | 'landscape';
+  gapSize: 'none' | 'compact' | 'standard' | 'wide';
+  pageMargin: 'none' | 'compact' | 'standard' | 'wide';
+  pageBreak: 'auto' | 'every-card';
+  showName: boolean;
+  showDescription: boolean;
+  borderStyle: 'dashed' | 'solid' | 'none';
+  barcodeScale: number;
+}
+
 export interface AICategory {
   id: string;
   label: string;

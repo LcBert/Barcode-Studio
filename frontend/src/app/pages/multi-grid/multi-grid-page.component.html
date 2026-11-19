@@ -1,0 +1,172 @@
+<div class="multi-grid-layout">
+  <!-- Multi-Grid Control Bar -->
+  <div class="multi-grid-toolbar">
+    <div class="toolbar-title-group">
+      <app-svg-icon name="grid" [size]="20" extraClass="toolbar-icon" />
+      <div>
+        <h2>Foglio Multi-Barcode</h2>
+        <span class="toolbar-sub">
+          {{ store.gridBarcodes().length }} codice/i in visualizzazione contemporanea
+        </span>
+      </div>
+    </div>
+
+    <div class="toolbar-controls">
+      <!-- Columns Switcher -->
+      <div class="columns-selector">
+        <span class="ctrl-label">Colonne:</span>
+        <div class="col-pill-group">
+          <button
+            type="button"
+            class="col-btn"
+            [class.active]="store.gridColumns() === 1"
+            (click)="store.setGridColumns(1)"
+          >1</button>
+          <button
+            type="button"
+            class="col-btn"
+            [class.active]="store.gridColumns() === 2"
+            (click)="store.setGridColumns(2)"
+          >2</button>
+          <button
+            type="button"
+            class="col-btn"
+            [class.active]="store.gridColumns() === 3"
+            (click)="store.setGridColumns(3)"
+          >3</button>
+          <button
+            type="button"
+            class="col-btn"
+            [class.active]="store.gridColumns() === 4"
+            (click)="store.setGridColumns(4)"
+          >4</button>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <button
+        type="button"
+        class="btn-subtle"
+        (click)="store.setActiveTab('library')"
+        title="Aggiungi altri barcode salvati a questo foglio"
+      >
+        <app-svg-icon name="plus" [size]="15" />
+        <span>Dalla Libreria</span>
+      </button>
+
+      @if (store.gridBarcodes().length > 0) {
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="store.printAllGrid()"
+          title="Stampa l'intero foglio di etichette"
+        >
+          <app-svg-icon name="printer" [size]="16" />
+          <span>Stampa Foglio (Tutti)</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-subtle-danger"
+          (click)="store.clearGrid()"
+          title="Rimuovi tutti i barcode da questa griglia"
+        >
+          <app-svg-icon name="trash" [size]="15" />
+          <span>Svuota Griglia</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Multi-Grid Content Cards -->
+  @if (store.gridBarcodes().length === 0) {
+    <div class="empty-grid-placeholder">
+      <app-svg-icon name="grid" [size]="48" />
+      <h3>Nessun barcode presente nel foglio multi-barcode</h3>
+      <p>Puoi inserire il barcode corrente dall'Editor oppure selezionare codici dalla Libreria.</p>
+      <div class="empty-grid-actions">
+        <button type="button" class="btn-primary" (click)="store.addCurrentToGrid()">
+          <app-svg-icon name="plus" [size]="15" />
+          <span>Aggiungi Barcode dell'Editor</span>
+        </button>
+        <button type="button" class="btn-outline" (click)="store.setActiveTab('library')">
+          <app-svg-icon name="folder" [size]="15" />
+          <span>Sfoglia Libreria Salvati</span>
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div
+      class="printable-labels-grid"
+      [class.cols-1]="store.gridColumns() === 1"
+      [class.cols-2]="store.gridColumns() === 2"
+      [class.cols-3]="store.gridColumns() === 3"
+      [class.cols-4]="store.gridColumns() === 4"
+    >
+      @for (item of store.gridBarcodes(); track $index; let idx = $index) {
+        <div
+          class="barcode-label-card"
+          draggable="true"
+          [class.is-dragging]="store.draggedItem()?.type === 'grid-card' && store.draggedItem()?.index === idx"
+          [class.drag-over-target]="store.dragOverGridIndex() === idx"
+          (dragstart)="store.onGridCardDragStart($event, idx)"
+          (dragover)="store.onGridCardDragOver($event, idx)"
+          (drop)="store.onGridCardDrop($event, idx)"
+          (dragend)="store.onDragEnd()"
+        >
+          <div class="label-card-header">
+            <div class="label-title-box">
+              <span class="drag-grip-handle no-print" title="Trascina per riordinare nel foglio">
+                <app-svg-icon name="grip" [size]="14" />
+              </span>
+              <span class="label-index">#{{ idx + 1 }}</span>
+              <strong class="label-name">{{ item.name }}</strong>
+            </div>
+            <div class="label-actions no-print">
+              <button
+                type="button"
+                class="btn-tiny-icon"
+                (click)="store.loadSaved(item, true)"
+                title="Apri e modifica nell'Editor"
+              >
+                <app-svg-icon name="edit" [size]="13" />
+              </button>
+              <button
+                type="button"
+                class="btn-tiny-icon-danger"
+                (click)="store.removeFromGrid(idx, $event)"
+                title="Rimuovi da questo foglio"
+              >
+                <app-svg-icon name="close" [size]="13" />
+              </button>
+            </div>
+          </div>
+
+          @if (item.description) {
+            <p class="label-desc">{{ item.description }}</p>
+          }
+
+          <!-- Rendered Barcode Symbol -->
+          <div class="label-barcode-view">
+            @if (item.svg) {
+              <div class="label-svg-wrap" [innerHTML]="store.getSafeSvg(item.svg)"></div>
+            } @else {
+              <div class="label-fallback-code">
+                <code>{{ item.human_readable || item.raw_code }}</code>
+              </div>
+            }
+          </div>
+
+          <div class="label-card-footer">
+            <code class="label-human-text">{{ item.human_readable || item.raw_code }}</code>
+            <div class="label-chips">
+              <span class="ai-count-chip">
+                {{ item.elements.length === 1 && !item.elements[0].ai ? 'Libero (Code 128)' : item.elements.length + ' AI' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

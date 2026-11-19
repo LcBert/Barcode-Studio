@@ -1,0 +1,404 @@
+@if (store.isPrintModalOpen()) {
+  <div class="print-modal-backdrop" (click)="store.closePrintModal()">
+    <div class="print-modal-dialog" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="print-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge">
+            <app-svg-icon name="printer" [size]="20" />
+          </div>
+          <div>
+            <h3>Impostazioni Stampa Etichette</h3>
+            <span class="modal-subtitle">
+              {{ store.expandedPrintItems().length }} etichette in coda ({{ store.printItems().length }} codici distinti)
+            </span>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="store.closePrintModal()" title="Chiudi finestra">
+          <app-svg-icon name="close" [size]="18" />
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="print-modal-body">
+        <!-- LEFT: Controls -->
+        <div class="print-config-pane">
+          <!-- Section 1: Copies per Item -->
+          <div class="config-group">
+            <label class="config-group-title">Quantità e Copie</label>
+            <div class="copies-control-row">
+              <span class="ctrl-subtext">Copie per ciascun barcode:</span>
+              <div class="stepper-box">
+                <button
+                  type="button"
+                  class="btn-step"
+                  (click)="store.decrementCopies()"
+                  [disabled]="store.printConfig().copiesPerItem <= 1"
+                >
+                  -
+                </button>
+                <span class="step-value">{{ store.printConfig().copiesPerItem }}</span>
+                <button
+                  type="button"
+                  class="btn-step"
+                  (click)="store.incrementCopies()"
+                  [disabled]="store.printConfig().copiesPerItem >= 50"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div class="copies-summary-pill">
+              Totale da stampare: <strong>{{ store.expandedPrintItems().length }} etichette</strong>
+            </div>
+          </div>
+
+          <!-- Section 2: Layout Colonne -->
+          <div class="config-group">
+            <label class="config-group-title">Disposizione Colonne</label>
+            <div class="segmented-control cols-picker">
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().columns === 1"
+                (click)="store.setPrintConfig('columns', 1)"
+              >1 col</button>
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().columns === 2"
+                (click)="store.setPrintConfig('columns', 2)"
+              >2 col</button>
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().columns === 3"
+                (click)="store.setPrintConfig('columns', 3)"
+              >3 col</button>
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().columns === 4"
+                (click)="store.setPrintConfig('columns', 4)"
+              >4 col</button>
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().columns === 5"
+                (click)="store.setPrintConfig('columns', 5)"
+              >5 col</button>
+            </div>
+          </div>
+
+          <!-- Section 3: Formato Carta & Orientamento -->
+          <div class="config-group">
+            <label class="config-group-title">Formato e Orientamento Foglio</label>
+            <div class="form-row-2col">
+              <div class="form-field">
+                <label class="field-label">Formato</label>
+                <div class="select-styled">
+                  <select
+                    [ngModel]="store.printConfig().paperSize"
+                    (ngModelChange)="store.setPrintConfig('paperSize', $event)"
+                  >
+                    <option value="a4">Foglio A4 (210×297 mm)</option>
+                    <option value="a5">Foglio A5 (148×210 mm)</option>
+                    <option value="thermal-100">Rotolo Termico (100×50 mm)</option>
+                    <option value="thermal-50">Rotolo Termico (50×30 mm)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label class="field-label">Orientamento</label>
+                <div class="segmented-control">
+                  <button
+                    type="button"
+                    class="seg-btn"
+                    [class.active]="store.printConfig().orientation === 'portrait'"
+                    (click)="store.setPrintConfig('orientation', 'portrait')"
+                  >Verticale</button>
+                  <button
+                    type="button"
+                    class="seg-btn"
+                    [class.active]="store.printConfig().orientation === 'landscape'"
+                    (click)="store.setPrintConfig('orientation', 'landscape')"
+                  >Orizzontale</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Spaziature & Margini -->
+          <div class="config-group">
+            <label class="config-group-title">Spaziature e Margini</label>
+            <div class="form-row-2col">
+              <div class="form-field">
+                <label class="field-label">Spaziatura (Gap)</label>
+                <div class="select-styled">
+                  <select
+                    [ngModel]="store.printConfig().gapSize"
+                    (ngModelChange)="store.setPrintConfig('gapSize', $event)"
+                  >
+                    <option value="none">Nessuna (0 mm)</option>
+                    <option value="compact">Compatta (2 mm)</option>
+                    <option value="standard">Standard (5 mm)</option>
+                    <option value="wide">Ampia (8 mm)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label class="field-label">Margine Foglio</label>
+                <div class="select-styled">
+                  <select
+                    [ngModel]="store.printConfig().pageMargin"
+                    (ngModelChange)="store.setPrintConfig('pageMargin', $event)"
+                  >
+                    <option value="none">Nessuno (0 mm)</option>
+                    <option value="compact">Compatto (4 mm)</option>
+                    <option value="standard">Normale (8 mm)</option>
+                    <option value="wide">Ampio (15 mm)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 5: Bordo & Aspetto Etichetta -->
+          <div class="config-group">
+            <label class="config-group-title">Bordo Etichetta</label>
+            <div class="segmented-control border-picker">
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().borderStyle === 'dashed'"
+                (click)="store.setPrintConfig('borderStyle', 'dashed')"
+                title="Linea tratteggiata per ritaglio con forbici"
+              >Tratteggiato</button>
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().borderStyle === 'solid'"
+                (click)="store.setPrintConfig('borderStyle', 'solid')"
+                title="Bordo continuo leggero"
+              >Continuo</button>
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().borderStyle === 'none'"
+                (click)="store.setPrintConfig('borderStyle', 'none')"
+                title="Nessun bordo (fogli pre-fustellati)"
+              >Nessuno</button>
+            </div>
+          </div>
+
+          <!-- Section 6: Contenuti dell'etichetta -->
+          <div class="config-group">
+            <label class="config-group-title">Elementi Visibili</label>
+            <div class="toggles-list">
+              <label class="toggle-row">
+                <input
+                  type="checkbox"
+                  [checked]="store.printConfig().showName"
+                  (change)="store.setPrintConfig('showName', !store.printConfig().showName)"
+                />
+                <span>Mostra Nome / Titolo Barcode</span>
+              </label>
+              <label class="toggle-row">
+                <input
+                  type="checkbox"
+                  [checked]="store.printConfig().showDescription"
+                  (change)="store.setPrintConfig('showDescription', !store.printConfig().showDescription)"
+                />
+                <span>Mostra Note / Descrizione</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Section 7: Paginazione / Interruzione -->
+          <div class="config-group">
+            <label class="config-group-title">Flusso Pagine</label>
+            <div class="segmented-control">
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().pageBreak === 'auto'"
+                (click)="store.setPrintConfig('pageBreak', 'auto')"
+                title="Paginazione continua naturale (riempimento foglio)"
+              >Continua (Auto)</button>
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().pageBreak === 'every-card'"
+                (click)="store.setPrintConfig('pageBreak', 'every-card')"
+                title="1 etichetta per pagina (rotoli o stampanti termiche)"
+              >1 per Pagina</button>
+            </div>
+          </div>
+
+          <!-- Section 8: Scala Barcode -->
+          <div class="config-group">
+            <label class="config-group-title">Dimensione Simbolo Barcode</label>
+            <div class="segmented-control">
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().barcodeScale === 80"
+                (click)="store.setPrintConfig('barcodeScale', 80)"
+              >Compatto (80%)</button>
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().barcodeScale === 100"
+                (click)="store.setPrintConfig('barcodeScale', 100)"
+              >Standard (100%)</button>
+              <button
+                type="button"
+                class="seg-btn"
+                [class.active]="store.printConfig().barcodeScale === 120"
+                (click)="store.setPrintConfig('barcodeScale', 120)"
+              >Grande (120%)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Live Virtual Paper Sheet Preview -->
+        <div class="print-preview-pane">
+          <div class="preview-toolbar">
+            <span class="preview-sheet-tag">
+              {{ store.printConfig().paperSize.toUpperCase() }} {{ store.printConfig().orientation === 'portrait' ? 'Verticale' : 'Orizzontale' }} - {{ store.expandedPrintItems().length }} etichette
+            </span>
+            <div class="preview-zoom-pills">
+              <button type="button" class="btn-zoom-preview" [class.active]="store.previewZoom() === 75" (click)="store.previewZoom.set(75)">75%</button>
+              <button type="button" class="btn-zoom-preview" [class.active]="store.previewZoom() === 100" (click)="store.previewZoom.set(100)">100%</button>
+              <button type="button" class="btn-zoom-preview" [class.active]="store.previewZoom() === 125" (click)="store.previewZoom.set(125)">125%</button>
+            </div>
+          </div>
+
+          <div class="preview-canvas-viewport">
+            <div
+              class="virtual-paper-sheet"
+              [class.sheet-a4]="store.printConfig().paperSize === 'a4'"
+              [class.sheet-a5]="store.printConfig().paperSize === 'a5'"
+              [class.sheet-thermal-100]="store.printConfig().paperSize === 'thermal-100'"
+              [class.sheet-thermal-50]="store.printConfig().paperSize === 'thermal-50'"
+              [class.sheet-landscape]="store.printConfig().orientation === 'landscape'"
+              [class.margin-none]="store.printConfig().pageMargin === 'none'"
+              [class.margin-compact]="store.printConfig().pageMargin === 'compact'"
+              [class.margin-standard]="store.printConfig().pageMargin === 'standard'"
+              [class.margin-wide]="store.printConfig().pageMargin === 'wide'"
+              [style.transform]="'scale(' + store.previewZoom() / 100 + ')'"
+            >
+              <div
+                class="virtual-grid"
+                [class.cols-1]="store.printConfig().columns === 1"
+                [class.cols-2]="store.printConfig().columns === 2"
+                [class.cols-3]="store.printConfig().columns === 3"
+                [class.cols-4]="store.printConfig().columns === 4"
+                [class.cols-5]="store.printConfig().columns === 5"
+                [class.gap-none]="store.printConfig().gapSize === 'none'"
+                [class.gap-compact]="store.printConfig().gapSize === 'compact'"
+                [class.gap-standard]="store.printConfig().gapSize === 'standard'"
+                [class.gap-wide]="store.printConfig().gapSize === 'wide'"
+              >
+                @for (item of store.expandedPrintItems(); track $index) {
+                  <div
+                    class="virtual-label-card"
+                    [class.border-dashed]="store.printConfig().borderStyle === 'dashed'"
+                    [class.border-solid]="store.printConfig().borderStyle === 'solid'"
+                    [class.border-none]="store.printConfig().borderStyle === 'none'"
+                  >
+                    @if (store.printConfig().showName && item.name) {
+                      <div class="virtual-label-name">{{ item.name }}</div>
+                    }
+                    @if (store.printConfig().showDescription && item.description) {
+                      <div class="virtual-label-desc">{{ item.description }}</div>
+                    }
+                    <div
+                      class="virtual-barcode-view"
+                      [style.transform]="'scale(' + store.printConfig().barcodeScale / 100 + ')'"
+                    >
+                      @if (item.svg) {
+                        <div class="print-svg-wrap" [innerHTML]="store.getSafeSvg(item.svg)"></div>
+                      } @else {
+                        <div class="print-fallback-code">{{ item.human_readable || item.raw_code }}</div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="print-modal-footer">
+        <button type="button" class="btn-modal-cancel" (click)="store.closePrintModal()">
+          Annulla
+        </button>
+        <button type="button" class="btn-modal-print" (click)="store.executePrint()">
+          <app-svg-icon name="printer" [size]="18" />
+          <span>Avvia Stampa ({{ store.expandedPrintItems().length }} Etichette)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- DEDICATED PRINT SHEET (ONLY SHOWN IN @media print) -->
+<div
+  id="print-target-sheet"
+  class="print-target-sheet"
+  [class.paper-a4]="store.printConfig().paperSize === 'a4'"
+  [class.paper-a5]="store.printConfig().paperSize === 'a5'"
+  [class.paper-thermal-100]="store.printConfig().paperSize === 'thermal-100'"
+  [class.paper-thermal-50]="store.printConfig().paperSize === 'thermal-50'"
+  [class.orient-portrait]="store.printConfig().orientation === 'portrait'"
+  [class.orient-landscape]="store.printConfig().orientation === 'landscape'"
+  [class.margin-none]="store.printConfig().pageMargin === 'none'"
+  [class.margin-compact]="store.printConfig().pageMargin === 'compact'"
+  [class.margin-standard]="store.printConfig().pageMargin === 'standard'"
+  [class.margin-wide]="store.printConfig().pageMargin === 'wide'"
+  [class.break-every-card]="store.printConfig().pageBreak === 'every-card'"
+>
+  <div
+    class="print-labels-grid"
+    [class.cols-1]="store.printConfig().columns === 1"
+    [class.cols-2]="store.printConfig().columns === 2"
+    [class.cols-3]="store.printConfig().columns === 3"
+    [class.cols-4]="store.printConfig().columns === 4"
+    [class.cols-5]="store.printConfig().columns === 5"
+    [class.gap-none]="store.printConfig().gapSize === 'none'"
+    [class.gap-compact]="store.printConfig().gapSize === 'compact'"
+    [class.gap-standard]="store.printConfig().gapSize === 'standard'"
+    [class.gap-wide]="store.printConfig().gapSize === 'wide'"
+  >
+    @for (item of store.expandedPrintItems(); track $index) {
+      <div
+        class="print-label-card"
+        [class.border-dashed]="store.printConfig().borderStyle === 'dashed'"
+        [class.border-solid]="store.printConfig().borderStyle === 'solid'"
+        [class.border-none]="store.printConfig().borderStyle === 'none'"
+      >
+        @if (store.printConfig().showName && item.name) {
+          <div class="print-label-name">{{ item.name }}</div>
+        }
+        @if (store.printConfig().showDescription && item.description) {
+          <div class="print-label-desc">{{ item.description }}</div>
+        }
+        <div
+          class="print-barcode-view"
+          [style.transform]="'scale(' + store.printConfig().barcodeScale / 100 + ')'"
+        >
+          @if (item.svg) {
+            <div class="print-svg-wrap" [innerHTML]="store.getSafeSvg(item.svg)"></div>
+          } @else {
+            <div class="print-fallback-code">{{ item.human_readable || item.raw_code }}</div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

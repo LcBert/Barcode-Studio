@@ -1,0 +1,560 @@
+<div class="library-layout">
+  <!-- Library Top Toolbar -->
+  <div class="library-toolbar">
+    <div class="library-title-group">
+      <div class="folder-badge-icon">
+        <app-svg-icon name="folder" [size]="20" />
+      </div>
+      <div>
+        <h2>Libreria Barcode Salvati</h2>
+        <span class="toolbar-sub">
+          {{ store.filteredSavedBarcodes().length }} barcode e {{ store.currentSubfolders().length }} cartelle in vista ({{ store.savedBarcodes().length }} totali)
+        </span>
+      </div>
+    </div>
+
+    <!-- Search Filter Box -->
+    <div class="library-search-box">
+      <app-svg-icon name="search" [size]="15" />
+      <input
+        type="text"
+        [ngModel]="store.searchSaved()"
+        (ngModelChange)="store.searchSaved.set($event)"
+        placeholder="Cerca barcode o cartelle..."
+      />
+      @if (store.searchSaved()) {
+        <button type="button" class="btn-clear-search" (click)="store.searchSaved.set('')">
+          <app-svg-icon name="close" [size]="13" />
+        </button>
+      }
+    </div>
+
+    <!-- View Mode Selector -->
+    <div class="library-view-switcher">
+      <button
+        type="button"
+        class="view-btn"
+        [class.active]="store.libraryViewMode() === 'cards'"
+        (click)="store.libraryViewMode.set('cards')"
+        title="Vista Schede con Miniature"
+      >
+        <app-svg-icon name="grid" [size]="15" />
+        <span>Schede</span>
+      </button>
+      <button
+        type="button"
+        class="view-btn"
+        [class.active]="store.libraryViewMode() === 'table'"
+        (click)="store.libraryViewMode.set('table')"
+        title="Vista Tabella Compatta"
+      >
+        <app-svg-icon name="list" [size]="15" />
+        <span>Tabella</span>
+      </button>
+    </div>
+
+    <!-- Stampa Catalogo Button -->
+    <button
+      type="button"
+      class="btn-library-print"
+      (click)="store.openPrintModal('library')"
+      title="Apri impostazioni di stampa per il catalogo salvato"
+    >
+      <app-svg-icon name="printer" [size]="15" />
+      <span>Stampa Catalogo</span>
+    </button>
+  </div>
+
+  <!-- FOLDER BREADCRUMB & HIERARCHY BAR -->
+  <div class="folder-nav-bar">
+    <div class="breadcrumbs-trail">
+      @if (store.currentFolderId() !== null && !store.showAllFoldersFlat()) {
+        <button
+          type="button"
+          class="btn-folder-up"
+          (click)="store.navigateUpFolder()"
+          title="Torna alla cartella superiore"
+        >
+          <app-svg-icon name="corner-up-left" [size]="14" />
+          <span>Su</span>
+        </button>
+      }
+
+      <!-- Root Breadcrumb (Also a Drop Target to move items to Root) -->
+      <button
+        type="button"
+        class="breadcrumb-item"
+        [class.active]="store.currentFolderId() === null && !store.showAllFoldersFlat()"
+        [class.drop-target-active]="store.dragOverFolderId() === 'root'"
+        (click)="store.navigateToFolder(null)"
+        (dragover)="store.onBreadcrumbDragOver($event, null)"
+        (dragleave)="store.onBreadcrumbDragLeave(null)"
+        (drop)="store.onBreadcrumbDrop($event, null)"
+        title="Clicca per aprire la radice o trascina qui un elemento per spostarlo nella radice"
+      >
+        <app-svg-icon name="folder" [size]="14" />
+        <span>Radice</span>
+      </button>
+
+      @for (crumb of store.breadcrumbs(); track crumb.id) {
+        <span class="breadcrumb-sep">
+          <app-svg-icon name="chevron-right" [size]="13" />
+        </span>
+        <button
+          type="button"
+          class="breadcrumb-item"
+          [class.active]="store.currentFolderId() === crumb.id && !store.showAllFoldersFlat()"
+          [class.drop-target-active]="store.dragOverFolderId() === crumb.id"
+          (click)="store.navigateToFolder(crumb.id)"
+          (dragover)="store.onBreadcrumbDragOver($event, crumb.id)"
+          (dragleave)="store.onBreadcrumbDragLeave(crumb.id)"
+          (drop)="store.onBreadcrumbDrop($event, crumb.id)"
+          title="Clicca per aprire o trascina qui un elemento per spostarlo in '{{ crumb.name }}'"
+        >
+          <app-svg-icon name="folder-open" [size]="14" />
+          <span>{{ crumb.name }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="folder-nav-actions">
+      <span class="dnd-hint">
+        <app-svg-icon name="grip" [size]="13" />
+        <span>Trascina per riordinare o rilasciare dentro le cartelle</span>
+      </span>
+
+      <button
+        type="button"
+        class="btn-flat-toggle"
+        [class.active]="store.showAllFoldersFlat()"
+        (click)="store.showAllFoldersFlat.set(!store.showAllFoldersFlat())"
+        title="Mostra tutti i barcode in un'unica lista piatta oppure divisi per cartelle"
+      >
+        <app-svg-icon name="layers" [size]="14" />
+        <span>{{ store.showAllFoldersFlat() ? 'Vista Cartelle' : 'Mostra Tutti' }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn-new-folder"
+        (click)="store.openCreateFolderModal(store.currentFolderId())"
+        title="Crea una nuova cartella in questa posizione"
+      >
+        <app-svg-icon name="folder-plus" [size]="15" />
+        <span>Nuova Cartella</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SUBFOLDERS SECTION -->
+  @if (store.currentSubfolders().length > 0) {
+    <div class="subfolders-section">
+      <div class="section-label-row">
+        <span class="section-mini-title">
+          Cartelle ({{ store.currentSubfolders().length }})
+        </span>
+      </div>
+      <div class="subfolders-grid">
+        @for (folder of store.currentSubfolders(); track folder.id) {
+          <div
+            class="folder-card"
+            draggable="true"
+            [class.is-dragging]="store.draggedItem()?.type === 'folder' && store.draggedItem()?.id === folder.id"
+            [class.drop-inside]="store.dragOverFolderId() === folder.id && store.dragOverFolderAction() === 'inside'"
+            [class.drop-before]="store.dragOverFolderId() === folder.id && store.dragOverFolderAction() === 'before'"
+            [class.drop-after]="store.dragOverFolderId() === folder.id && store.dragOverFolderAction() === 'after'"
+            (click)="store.navigateToFolder(folder.id)"
+            (dragstart)="store.onFolderDragStart($event, folder)"
+            (dragover)="store.onFolderCardDragOver($event, folder)"
+            (dragleave)="store.onFolderCardDragLeave(folder)"
+            (drop)="store.onFolderCardDrop($event, folder)"
+            (dragend)="store.onDragEnd()"
+          >
+            <div class="folder-card-left">
+              <span
+                class="drag-grip-handle"
+                title="Trascina per riordinare o annidare in un'altra cartella"
+                (click)="$event.stopPropagation()"
+              >
+                <app-svg-icon name="grip" [size]="14" />
+              </span>
+              <div class="folder-icon-wrap">
+                <app-svg-icon name="folder" [size]="20" />
+              </div>
+              <div class="folder-meta">
+                <strong class="folder-name" [title]="folder.name">{{ folder.name }}</strong>
+                <span class="folder-counts">
+                  {{ store.getFolderSubfolderCount(folder.id) }} sottocartelle · {{ store.getFolderBarcodeCount(folder.id) }} barcode
+                </span>
+              </div>
+            </div>
+
+            <div class="folder-card-actions" (click)="$event.stopPropagation()">
+              <button
+                type="button"
+                class="btn-folder-act"
+                (click)="store.openCreateFolderModal(folder.id)"
+                title="Crea sottocartella dentro '{{ folder.name }}'"
+              >
+                <app-svg-icon name="folder-plus" [size]="13" />
+              </button>
+              <button
+                type="button"
+                class="btn-folder-act"
+                (click)="store.openEditFolderModal(folder, $event)"
+                title="Rinomina o cambia cartella padre"
+              >
+                <app-svg-icon name="edit" [size]="13" />
+              </button>
+              <button
+                type="button"
+                class="btn-folder-act-danger"
+                (click)="store.deleteFolder(folder, $event)"
+                title="Elimina cartella"
+              >
+                <app-svg-icon name="trash" [size]="13" />
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- BATCH SELECTION ACTION BAR -->
+  <div class="library-selection-bar">
+    <div class="select-all-box">
+      <label class="custom-checkbox">
+        <input
+          type="checkbox"
+          [checked]="store.isAllLibrarySelected()"
+          (change)="store.toggleSelectAllLibrary()"
+        />
+        <span class="checkbox-label">
+          {{ store.selectedLibraryIds().size === 0 ? 'Seleziona Tutti i Barcode in vista' : store.selectedLibraryIds().size + ' selezionati' }}
+        </span>
+      </label>
+    </div>
+
+    @if (store.selectedLibraryIds().size > 0) {
+      <div class="batch-actions-group">
+        <button
+          type="button"
+          class="btn-batch-primary"
+          (click)="store.openSelectedInGrid()"
+          title="Visualizza i barcode selezionati nella griglia multi-barcode"
+        >
+          <app-svg-icon name="grid" [size]="15" />
+          <span>Apri in Griglia ({{ store.selectedLibraryIds().size }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-batch-subtle"
+          (click)="store.openMoveSelectedBarcodesModal()"
+          title="Sposta i barcode selezionati in un'altra cartella"
+        >
+          <app-svg-icon name="folder" [size]="15" />
+          <span>Sposta in Cartella ({{ store.selectedLibraryIds().size }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-batch-subtle"
+          (click)="store.openPrintModal('library')"
+          title="Configura e stampa i barcode selezionati"
+        >
+          <app-svg-icon name="printer" [size]="15" />
+          <span>Stampa Selezionati ({{ store.selectedLibraryIds().size }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-batch-danger"
+          (click)="store.deleteSelectedLibrary()"
+          title="Elimina tutti gli elementi selezionati"
+        >
+          <app-svg-icon name="trash" [size]="15" />
+          <span>Elimina ({{ store.selectedLibraryIds().size }})</span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- CONTENT: CARDS VIEW -->
+  @if (store.libraryViewMode() === 'cards') {
+    <div class="library-cards-grid">
+      @for (item of store.filteredSavedBarcodes(); track item.id) {
+        <div
+          class="catalog-card"
+          draggable="true"
+          [class.selected]="item.id && store.selectedLibraryIds().has(item.id)"
+          [class.active-in-editor]="store.selectedSavedId() === item.id"
+          [class.is-dragging]="store.draggedItem()?.type === 'barcode' && store.draggedItem()?.id === item.id"
+          [class.drop-before]="store.dragOverBarcodeId() === item.id && store.dragOverBarcodePosition() === 'before'"
+          [class.drop-after]="store.dragOverBarcodeId() === item.id && store.dragOverBarcodePosition() === 'after'"
+          (dragstart)="store.onBarcodeDragStart($event, item)"
+          (dragover)="store.onBarcodeDragOver($event, item, false)"
+          (dragleave)="store.onBarcodeDragLeave(item)"
+          (drop)="store.onBarcodeDrop($event, item)"
+          (dragend)="store.onDragEnd()"
+        >
+          <!-- Card Header -->
+          <div class="catalog-card-header">
+            <div class="card-header-left">
+              <span class="drag-grip-handle" title="Trascina per riordinare o spostare in una cartella">
+                <app-svg-icon name="grip" [size]="14" />
+              </span>
+              <label class="custom-checkbox" (click)="$event.stopPropagation()">
+                <input
+                  type="checkbox"
+                  [checked]="item.id && store.selectedLibraryIds().has(item.id)"
+                  (change)="item.id && store.toggleLibraryItemSelection(item.id, $event)"
+                />
+                <span class="catalog-item-name" [title]="item.name">{{ item.name }}</span>
+              </label>
+            </div>
+
+            <span class="ai-count-chip">
+              {{ item.elements.length === 1 && !item.elements[0].ai ? 'Code 128' : item.elements.length + ' AI' }}
+            </span>
+          </div>
+
+          @if ((store.showAllFoldersFlat() || store.searchSaved()) && item.folder) {
+            <div
+              class="card-folder-pill"
+              (click)="store.navigateToFolder(item.folder); $event.stopPropagation()"
+              title="Vai alla cartella"
+            >
+              <app-svg-icon name="folder" [size]="12" />
+              <span>{{ store.getFolderFullPath(item.folder) }}</span>
+            </div>
+          }
+
+          @if (item.description) {
+            <p class="catalog-desc">{{ item.description }}</p>
+          }
+
+          <!-- Real Mini Barcode SVG Preview -->
+          <div
+            class="catalog-barcode-preview"
+            (click)="store.loadSaved(item, true)"
+            title="Clicca per aprire nell'Editor"
+          >
+            @if (item.svg) {
+              <div class="mini-svg-wrap" [innerHTML]="store.getSafeSvg(item.svg)"></div>
+            } @else {
+              <div class="mini-placeholder-code">
+                <code>{{ item.human_readable || item.raw_code }}</code>
+              </div>
+            }
+          </div>
+
+          <div class="catalog-readable-code">
+            <code>{{ item.human_readable || item.raw_code }}</code>
+          </div>
+
+          <!-- Card Footer Actions -->
+          <div class="catalog-card-actions">
+            <button
+              type="button"
+              class="btn-card-action btn-edit"
+              (click)="store.loadSaved(item, true)"
+              title="Carica nell'Editor per modificare"
+            >
+              <app-svg-icon name="edit" [size]="13" />
+              <span>Modifica</span>
+            </button>
+
+            <button
+              type="button"
+              class="btn-card-action"
+              (click)="store.addToGrid(item, $event)"
+              title="Aggiungi al foglio multi-barcode"
+            >
+              <app-svg-icon name="grid" [size]="13" />
+              <span>+ Griglia</span>
+            </button>
+
+            <button
+              type="button"
+              class="btn-card-action"
+              (click)="store.openMoveBarcodeModal(item, $event)"
+              title="Sposta in un'altra cartella"
+            >
+              <app-svg-icon name="folder" [size]="13" />
+            </button>
+
+            <button
+              type="button"
+              class="btn-card-action"
+              (click)="store.duplicateSaved(item, $event)"
+              title="Crea una copia duplicata di questo barcode"
+            >
+              <app-svg-icon name="copy" [size]="13" />
+            </button>
+
+            <button
+              type="button"
+              class="btn-card-action-danger"
+              (click)="store.deleteSaved(item, $event)"
+              title="Elimina definitivamente dal database"
+            >
+              <app-svg-icon name="trash" [size]="13" />
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-library-state">
+          <app-svg-icon name="folder" [size]="40" />
+          @if (store.savedBarcodes().length === 0 && store.folders().length === 0) {
+            <p>Nessun barcode salvato. Componi un codice nel Generatore e premi "Salva".</p>
+            <button type="button" class="btn-primary" (click)="store.setActiveTab('editor')">
+              <app-svg-icon name="barcode" [size]="15" />
+              <span>Vai al Generatore</span>
+            </button>
+          } @else if (store.searchSaved()) {
+            <p>Nessun barcode corrispondente a "{{ store.searchSaved() }}".</p>
+          } @else {
+            <p>Nessun barcode diretto in questa cartella. Puoi crearne uno, spostarlo qui con Drag &amp; Drop o creare una sottocartella.</p>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- CONTENT: TABLE VIEW -->
+  @if (store.libraryViewMode() === 'table') {
+    <div class="library-table-wrapper">
+      <table class="library-table">
+        <thead>
+          <tr>
+            <th class="th-check">
+              <input
+                type="checkbox"
+                [checked]="store.isAllLibrarySelected()"
+                (change)="store.toggleSelectAllLibrary()"
+              />
+            </th>
+            <th class="th-preview">Anteprima Barcode</th>
+            <th>Nome Configurazione</th>
+            <th>Cartella</th>
+            <th>Codice Human-Readable</th>
+            <th>Campi / AI</th>
+            <th class="th-actions">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of store.filteredSavedBarcodes(); track item.id) {
+            <tr
+              draggable="true"
+              [class.selected-row]="item.id && store.selectedLibraryIds().has(item.id)"
+              [class.active-row]="store.selectedSavedId() === item.id"
+              [class.is-dragging]="store.draggedItem()?.type === 'barcode' && store.draggedItem()?.id === item.id"
+              [class.drop-before-row]="store.dragOverBarcodeId() === item.id && store.dragOverBarcodePosition() === 'before'"
+              [class.drop-after-row]="store.dragOverBarcodeId() === item.id && store.dragOverBarcodePosition() === 'after'"
+              (dragstart)="store.onBarcodeDragStart($event, item)"
+              (dragover)="store.onBarcodeDragOver($event, item, true)"
+              (dragleave)="store.onBarcodeDragLeave(item)"
+              (drop)="store.onBarcodeDrop($event, item)"
+              (dragend)="store.onDragEnd()"
+            >
+              <td class="td-check">
+                <div class="td-check-grip">
+                  <span class="drag-grip-handle" title="Trascina per riordinare o spostare in una cartella">
+                    <app-svg-icon name="grip" [size]="13" />
+                  </span>
+                  <input
+                    type="checkbox"
+                    [checked]="item.id && store.selectedLibraryIds().has(item.id)"
+                    (change)="item.id && store.toggleLibraryItemSelection(item.id, $event)"
+                  />
+                </div>
+              </td>
+              <td class="td-preview" (click)="store.loadSaved(item, true)">
+                @if (item.svg) {
+                  <div class="table-svg-wrap" [innerHTML]="store.getSafeSvg(item.svg)"></div>
+                } @else {
+                  <code>GS1-128</code>
+                }
+              </td>
+              <td class="td-name">
+                <strong>{{ item.name }}</strong>
+                @if (item.description) {
+                  <span class="td-sub">{{ item.description }}</span>
+                }
+              </td>
+              <td class="td-folder">
+                <button
+                  type="button"
+                  class="folder-tag-btn"
+                  (click)="store.navigateToFolder(item.folder ?? null)"
+                  title="Apri cartella"
+                >
+                  <app-svg-icon name="folder" [size]="12" />
+                  <span>{{ store.getFolderFullPath(item.folder) }}</span>
+                </button>
+              </td>
+              <td class="td-code">
+                <code>{{ item.human_readable || item.raw_code }}</code>
+              </td>
+              <td class="td-ai">
+                <span class="ai-count-chip">
+                  {{ item.elements.length === 1 && !item.elements[0].ai ? 'Libero' : item.elements.length + ' AI' }}
+                </span>
+              </td>
+              <td class="td-actions">
+                <button
+                  type="button"
+                  class="btn-icon-subtle"
+                  (click)="store.loadSaved(item, true)"
+                  title="Modifica nell'Editor"
+                >
+                  <app-svg-icon name="edit" [size]="14" />
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon-subtle"
+                  (click)="store.addToGrid(item, $event)"
+                  title="Aggiungi a Griglia Multipla"
+                >
+                  <app-svg-icon name="grid" [size]="14" />
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon-subtle"
+                  (click)="store.openMoveBarcodeModal(item, $event)"
+                  title="Sposta in Cartella"
+                >
+                  <app-svg-icon name="folder" [size]="14" />
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon-subtle"
+                  (click)="store.duplicateSaved(item, $event)"
+                  title="Duplica"
+                >
+                  <app-svg-icon name="copy" [size]="14" />
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon-danger-sm"
+                  (click)="store.deleteSaved(item, $event)"
+                  title="Elimina"
+                >
+                  <app-svg-icon name="trash" [size]="14" />
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="table-empty-row">
+                Nessun barcode in questa posizione.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
